@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+
+# Local server config and audit logs never belong in the repo.
+config.toml
+*.audit.jsonl
+audit.jsonl
+
+# Generated test data and any future real-data handles (Phases 4-5).
+/data/
+/output/

@@ -1,0 +1,8 @@
+# Replace @neha0801 on the security-sensitive paths with the InfoSec team
+# (e.g. @your-org/infosec-reviewers) once it exists. See SECURITY.md.
+*                 @neha0801
+/mcp-server/      @neha0801
+/shared/          @neha0801
+/claude/          @neha0801
+/.github/         @neha0801
+/CODEOWNERS       @neha0801
