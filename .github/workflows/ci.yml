@@ -1,0 +1,69 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e shared/dlp_patterns -e "mcp-server[dev]"
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: mypy mcp-server/src shared/dlp_patterns/src
+
+  unit:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e shared/dlp_patterns -e "mcp-server[dev]"
+      - run: pytest
+        working-directory: mcp-server
+
+  integration:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ODBC Driver 18 for SQL Server
+        run: |
+          if ! odbcinst -q -d 2>/dev/null | grep -q "ODBC Driver 18 for SQL Server"; then
+            curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg --yes
+            echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/ubuntu/24.04/prod noble main" | sudo tee /etc/apt/sources.list.d/mssql-release.list
+            sudo apt-get update -qq
+            sudo ACCEPT_EULA=Y apt-get install -y -qq msodbcsql18 unixodbc-dev
+          fi
+      - name: Start disposable SQL Server
+        run: |
+          PW="It1!$(openssl rand -hex 12)"
+          echo "::add-mask::$PW"
+          echo "SQLMETA_IT_SA_PASSWORD=$PW" >> "$GITHUB_ENV"
+          echo "SQLMETA_IT_SERVER=127.0.0.1,14333" >> "$GITHUB_ENV"
+          SQLMETA_IT_SA_PASSWORD="$PW" docker compose -f mcp-server/tests/integration/docker-compose.yml up -d
+      - run: pip install -e shared/dlp_patterns -e "mcp-server[dev]"
+      - name: Wait for SQL Server
+        run: |
+          for i in $(seq 1 60); do
+            python -c "import os,pyodbc; pyodbc.connect('Driver={ODBC Driver 18 for SQL Server};Server=127.0.0.1,14333;UID=sa;PWD={'+os.environ['SQLMETA_IT_SA_PASSWORD']+'};Encrypt=yes;TrustServerCertificate=yes', timeout=3)" 2>/dev/null && exit 0
+            sleep 2
+          done
+          echo "SQL Server did not start"; exit 1
+      - run: pytest -m integration -v
+        working-directory: mcp-server

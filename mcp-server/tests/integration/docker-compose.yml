@@ -1,0 +1,12 @@
+# Disposable SQL Server for the integration tests. Nothing here is a real credential:
+# the SA password is supplied per run (see README.md) and the container holds only
+# synthetic canary data from seed.sql.
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${SQLMETA_IT_SA_PASSWORD:?set SQLMETA_IT_SA_PASSWORD}"
+      MSSQL_PID: Developer
+    ports:
+      - "127.0.0.1:14333:1433"

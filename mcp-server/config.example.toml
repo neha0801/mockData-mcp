@@ -1,0 +1,30 @@
+# Copy to a location outside the repo and point the server at it:
+#   sqlmeta-mcp --config /path/to/config.toml    (or set SQLMETA_MCP_CONFIG)
+#
+# Coordinates only. Secret keys (password, pwd, token, connection_string, ...)
+# are refused at startup.
+
+server   = "dev-sql01.corp.example,1433"
+database = "AppDb_Dev"
+
+# windows | entra-integrated | entra-interactive | entra-msi | sql-keyring
+auth = "windows"
+
+# Only for auth = "sql-keyring" (password read from the OS keychain:
+#   python -m keyring set sqlmeta-mcp svc_sqlmeta)
+# or the client id of a user-assigned identity for auth = "entra-msi".
+# username = "svc_sqlmeta"
+# keyring_service = "sqlmeta-mcp"
+
+driver = "ODBC Driver 18 for SQL Server"
+encrypt = true
+trust_server_certificate = false
+login_timeout_s = 15
+query_timeout_s = 30
+
+# Limit what the server will describe. Deny wins over allow.
+# allowed_schemas = ["dbo", "app"]
+denied_schemas = ["audit", "security"]
+
+max_definition_chars = 200000
+# audit_log = "~/.local/state/sqlmeta-mcp/audit.jsonl"
